@@ -12,7 +12,7 @@ export class SongService {
     // Create headers (not strictly necessary, but can help)
     const headers = new HttpHeaders({
       'Accept': 'application/json',
-      'Content-Type': 'multipart/form-data',  // Ensure the correct content-type for file uploads
+      'Content-Type': 'multipart/form-data',
     });
 
     return this.http.post<any>('http://localhost:5000/predict', formData, { headers });

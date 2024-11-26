@@ -1,14 +1,12 @@
-# SVM
-
-
 from flask import Flask, request, jsonify
 import librosa
 import numpy as np
 import os
-import joblib  
+import joblib
 
 app = Flask(__name__)
 
+# Load the trained SVM model
 model = joblib.load('model.pkl')
 
 @app.route('/predict', methods=['POST'])
@@ -24,23 +22,23 @@ def predict():
     file.save(file_path)
 
     try:
+        # Extract features using librosa
         y, sr = librosa.load(file_path, sr=None)
-
         spectral_centroids = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
         spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)[0]
 
-        spectral_centroid_avg = np.mean(spectral_centroids)
-        spectral_rolloff_avg = np.mean(spectral_rolloff)
+        # Compute the average features
+        features = np.array([
+            np.mean(spectral_centroids),
+            np.mean(spectral_rolloff)
+        ]).reshape(1, -1)
 
-        features = np.array([spectral_centroid_avg, spectral_rolloff_avg]).reshape(1, -1)
-
+        # Predict genre
         predicted_genre = model.predict(features)[0]
 
-        result = {
-            "predicted_genre": predicted_genre,
-        }
+        result = {"predicted_genre": predicted_genre}
     except Exception as e:
-        result = {"error": str(e)}
+        result = {"error": f"Error processing file: {str(e)}"}
     finally:
         if os.path.exists(file_path):
             os.remove(file_path)
@@ -48,5 +46,4 @@ def predict():
     return jsonify(result)
 
 if __name__ == '__main__':
-    # app.run(debug=True)
-    app.run(port=5001)
+    app.run(port=5001, debug=True)

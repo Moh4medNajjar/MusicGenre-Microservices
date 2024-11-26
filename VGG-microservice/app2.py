@@ -8,20 +8,20 @@ import os
 
 app = Flask(__name__)
 
+# Load the trained VGG model
 model = load_model('music_genre_model.h5')
 
+# List of genres
 GENRES = ['blues', 'classical', 'country', 'disco', 'hiphop', 'jazz', 'metal', 'pop', 'reggae', 'rock']
 
 def preprocess_audio(file_path):
-    y, sr = librosa.load(file_path, sr=22050)  
-    y, _ = librosa.effects.trim(y)  
-    
+    # Load and preprocess the audio file
+    y, sr = librosa.load(file_path, sr=22050)
+    y, _ = librosa.effects.trim(y)
     mel_spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
     mel_spectrogram = librosa.power_to_db(mel_spectrogram, ref=np.max)
-    
     padded_mel = pad_sequences([mel_spectrogram.T], maxlen=43, padding='post', truncating='post')
-    
-    return np.expand_dims(padded_mel, axis=-1)  
+    return np.expand_dims(padded_mel, axis=-1)
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -36,15 +36,14 @@ def predict():
     file.save(file_path)
 
     try:
+        # Preprocess the file and predict
         audio_features = preprocess_audio(file_path)
         prediction = model.predict(audio_features)
         predicted_genre = GENRES[np.argmax(prediction)]
 
-        result = {
-            "predicted_genre": predicted_genre,
-        }
+        result = {"predicted_genre": predicted_genre}
     except Exception as e:
-        result = {"error": str(e)}
+        result = {"error": f"Error processing file: {str(e)}"}
     finally:
         if os.path.exists(file_path):
             os.remove(file_path)
@@ -52,5 +51,4 @@ def predict():
     return jsonify(result)
 
 if __name__ == '__main__':
-    # app.run(debug=True)
-    app.run(port=5002)
+    app.run(port=5002, debug=True)
